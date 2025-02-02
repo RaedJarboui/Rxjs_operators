@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { filter, from, map, Observable, of, share, take, takeLast, takeWhile, tap } from 'rxjs';
+import { filter, forkJoin, from, interval, map, mergeMap, Observable, of, share, switchMap, take, takeLast, takeWhile, tap } from 'rxjs';
 import {HttpClient} from '@angular/common/http';
 import { Person } from './person';
 
@@ -35,6 +35,9 @@ export class AppComponent implements OnInit {
     this.share_operator(request)
     request.subscribe()
     this.take_operator(this.peoples)
+    this.switchMap_Operator(this.peoples)
+    this.mergeMap_Operator(this.peoples)
+    this.forkJoin_operator()
   }
 
   /**
@@ -125,5 +128,64 @@ export class AppComponent implements OnInit {
 
     }
 
+    /**
+   * rxjs switchMap operator
+   * assure only latest observable is running and do unsbscribe for first one after it emits first value
+   */
+
+    public switchMap_Operator(peoples: Person[]){
+      from(peoples).pipe(
+        //new observable
+        tap(people=>console.log("switchMap people : ",people)),
+        switchMap((people)=>{
+          return this.peopleObservable(people);
+        })
+
+      ).subscribe(x=>console.log('switchMap :',x))
+
+    }
+
+    public peopleObservable (people: Person) : Observable<string | undefined>{
+      return of(people).pipe(map(people=>people.name));
+    }
+
+     /**
+   * rxjs mergehMap operator
+   * take value from first observable and pass it to second observable to do some operations with it
+   */
+
+         public mergeMap_Operator(peoples: Person[]){
+          let numbers = of(10,2,3);
+          numbers.pipe(
+            mergeMap((number: number)=>{
+               return from(peoples).pipe(
+                map((people : Person)=>({
+                    ...people,
+                    age: number + people.age 
+                  
+                }))
+               );
+            })
+    
+          ).subscribe(x=>console.log('mergeMap :',x))
+    
+        }
+
+    /**
+   * rxjs forkJoin operator
+   * subscribe at latest outputs of observale and emit it inside array
+   */
+        public forkJoin_operator(){
+          const numbers = of([1,2,3])
+          const letters = of(['a','b','c'])
+          forkJoin(numbers,letters).subscribe(
+            value=>console.log(value),
+            err=>console.log(err),
+            ()=>console.log('completed')
+          )
+        }
+
 
 }
+
+
